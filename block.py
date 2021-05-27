@@ -9,7 +9,7 @@ class Block:
         self.proof_no = proof_no
         self.prev_hash = prev_hash
         self.data = data
-        self.timestamp = timestamp
+        self.timestamp = time.time()
 
     @property
     def calculate_hash(self):
@@ -73,7 +73,7 @@ class BlockChain:
         })
         return True
 
-    def proof_of_work(last_proof):
+    def proof_of_work(self, last_proof):
         proof_no = 0
         while BlockChain.verifying_proof(proof_no, last_proof) is False:
             proof_no += 1
