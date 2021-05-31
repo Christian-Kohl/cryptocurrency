@@ -24,14 +24,14 @@ class Block:
                 )
         return hashlib.sha256(block_of_string.encode()).hexdigest()
 
-    def __repr__(self):
-        return "{} - {} - {} - {} - {}".format(
-                self.index,
-                self.proof_no,
-                self.prev_hash,
-                self.data,
-                self.timestamp
-                )
+    def set(self):
+        return {
+                'index': self.index,
+                'proof_no': self.proof_no,
+                'prev_hash': self.prev_hash,
+                'data': self.data,
+                'timestamp': self.timestamp
+                }
 
 
 class BlockChain:
@@ -90,6 +90,12 @@ class BlockChain:
     def latest_block(self):
         return self.chain[-1]
 
+    def get_chain(self):
+        chain_json = []
+        for i in self.chain:
+            chain_json += [i.set()]
+        return {'chain': chain_json, 'length': len(blockchain.chain)}
+
 
 app = Flask(__name__)
 
@@ -140,9 +146,7 @@ def new_transaction():
 
 @app.route('/chain', methods=["GET"])
 def full_chain():
-    response = {
-            'length': len(blockchain.chain)
-            }
+    response = blockchain.get_chain()
     return jsonify(response), 200
 
 
