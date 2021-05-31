@@ -1,8 +1,7 @@
 import hashlib
 import time
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from uuid import uuid4
-from requests import request
 
 
 class Block:
@@ -101,25 +100,25 @@ blockchain = BlockChain()
 @app.route('/mine', methods=['GET'])
 def mine():
 
-    last_block = blockchain.last_block
-    last_proof = last_block['proof']
+    last_block = blockchain.latest_block()
+    last_proof = last_block.proof_no
     proof = blockchain.proof_of_work(last_proof)
 
-    blockchain.new_transaction(
+    blockchain.new_data(
         sender="0",
         recipient=node_identifier,
-        amount=1,
+        quantity=1,
     )
 
-    previous_hash = blockchain.hash(last_block)
+    previous_hash = last_block.prev_hash
     block = blockchain.construct_block(proof, previous_hash)
 
     response = {
         'message': 'The new block has been forged',
-        'index': block['index'],
-        'transactions': block['transactions'],
-        'proof': block['proof'],
-        'previous_hash': block['previous_hash']
+        'index': block.index,
+        'transactions': block.data,
+        'proof': block.proof_no,
+        'previous_hash': block.prev_hash
     }
     return jsonify(response), 200
 
@@ -133,7 +132,7 @@ def new_transaction():
     index = blockchain.new_data(values['sender'],
                                 values['recipient'],
                                 values['amount'])
-    response = {'message',
+    response = {'message':
                 f'Transaction is scheduled to be added to Block No. {index}'
                 }
     return jsonify(response), 201
@@ -142,7 +141,6 @@ def new_transaction():
 @app.route('/chain', methods=["GET"])
 def full_chain():
     response = {
-            'chain': blockchain.chain,
             'length': len(blockchain.chain)
             }
     return jsonify(response), 200
