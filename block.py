@@ -37,6 +37,7 @@ class Block:
 class BlockChain:
     def __init__(self):
         self.chain = []
+        self.pending_transactions = []
         self.current_data = []
         self.nodes = set()
         self.construct_genesis()
@@ -66,6 +67,29 @@ class BlockChain:
         elif block.timestamp <= prev_block.timestamp:
             return False
         return True
+
+    def add_pending(self, sender, recipient, quantity, transactor):
+        completed = False
+        for pender in self.pending_transactions:
+            if ((pender['sender'] == transactor and
+               pender['transactor'] == recipient and
+               pender['quantity'] == quantity) or
+               (pender['recipient'] == transactor and
+               pender['transactor'] == sender and
+               pender['quantity'] == quantity)):
+                completed = True
+                break
+
+        if completed:
+            self.pending_transactions.remove(pender)
+            self.new_data(sender, recipient, quantity)
+            return True
+        else:
+            self.pending_transactions += [{'transactor': transactor,
+                                           'sender': sender,
+                                           'recipient': recipient,
+                                           'quantity': quantity}]
+            return False
 
     def new_data(self, sender, recipient, quantity):
         self.current_data.append({
@@ -172,13 +196,19 @@ def new_transaction():
     required = ['sender', 'recipient', 'amount']
     if not all(k in values for k in required):
         return 'Missing values', 400
-    index = blockchain.new_data(values['sender'],
-                                values['recipient'],
-                                values['amount'])
-    response = {'message':
+    transaction_data = values
+    if blockchain.add_pending(transaction_data):
+        index = blockchain.latest_block().index + 1
+        response = {
+                'message':
                 f'Transaction is scheduled to be added to Block No. {index}'
                 }
-    return jsonify(response), 201
+        return jsonify(response), 201
+    else:
+        response = {'message':
+                    'Transaction currently pending'
+                    }
+        return jsonify(response), 200
 
 
 @app.route('/chain', methods=["GET"])
