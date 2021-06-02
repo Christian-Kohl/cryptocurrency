@@ -2,6 +2,7 @@ import hashlib
 import time
 from flask import Flask, jsonify, request
 from uuid import uuid4
+import json
 
 
 class Block:
@@ -68,27 +69,30 @@ class BlockChain:
             return False
         return True
 
-    def add_pending(self, sender, recipient, quantity, transactor):
+    def add_pending(self, transaction_data):
         completed = False
         for pender in self.pending_transactions:
-            if ((pender['sender'] == transactor and
-               pender['transactor'] == recipient and
-               pender['quantity'] == quantity) or
-               (pender['recipient'] == transactor and
-               pender['transactor'] == sender and
-               pender['quantity'] == quantity)):
+            if pender['timestamp'] + 3600 < time.time():
+                self.pending_transactions.remove(pender)
+                continue
+            if ((pender['sender'] == transaction_data['transactor'] and
+               pender['transactor'] == transaction_data['recipient'] and
+               pender['amount'] == transaction_data['amount']) or
+               (pender['recipient'] == transaction_data['transactor'] and
+               pender['transactor'] == transaction_data['sender'] and
+               pender['amount'] == transaction_data['amount'])):
                 completed = True
                 break
 
         if completed:
             self.pending_transactions.remove(pender)
-            self.new_data(sender, recipient, quantity)
+            self.new_data(transaction_data['sender'],
+                          transaction_data['recipient'],
+                          transaction_data['amount'])
             return True
         else:
-            self.pending_transactions += [{'transactor': transactor,
-                                           'sender': sender,
-                                           'recipient': recipient,
-                                           'quantity': quantity}]
+            transaction_data['timestamp'] = time.time()
+            self.pending_transactions += [transaction_data]
             return False
 
     def new_data(self, sender, recipient, quantity):
@@ -168,7 +172,7 @@ def user_mine():
     values = request.get_json()
     required = ['miner', 'proof']
     if not all(k in values for k in required):
-        return 'Missing valuse', 400
+        return 'Missing values', 400
     presented_proof = values['proof']
     if blockchain.proof_of_mine(presented_proof):
         blockchain.new_data(
@@ -192,8 +196,8 @@ def user_mine():
 
 @app.route('/transaction/new', methods=['POST'])
 def new_transaction():
-    values = request.get_json()
-    required = ['sender', 'recipient', 'amount']
+    values = json.loads(request.data, strict=False)
+    required = ['sender', 'recipient', 'amount', 'transactor']
     if not all(k in values for k in required):
         return 'Missing values', 400
     transaction_data = values
