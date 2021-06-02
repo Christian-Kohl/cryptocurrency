@@ -77,9 +77,19 @@ class BlockChain:
 
     def proof_of_work(self, last_proof):
         proof_no = 0
-        while BlockChain.verifying_proof(proof_no, last_proof) is False:
+        while BlockChain.verifying_proof(last_proof, proof_no) is False:
             proof_no += 1
         return proof_no
+
+    def proof_of_mine(self, proof_to_check):
+        if BlockChain.verifying_proof(self.latest_block().proof_no,
+                                      proof_to_check):
+            return True
+        else:
+            return False
+
+    def latest_proof(self):
+        return self.latest_block().proof_no
 
     @staticmethod
     def verifying_proof(last_proof, proof):
@@ -127,6 +137,33 @@ def mine():
         'previous_hash': block.prev_hash
     }
     return jsonify(response), 200
+
+
+@app.route('/mine', methods=['POST'])
+def user_mine():
+    values = request.get_json()
+    required = ['miner', 'proof']
+    if not all(k in values for k in required):
+        return 'Missing valuse', 400
+    presented_proof = values['proof']
+    if blockchain.proof_of_mine(presented_proof):
+        blockchain.new_data(
+                sender="0",
+                recipient=values['miner'],
+                quantity=1
+                )
+        previous_hash = blockchain.latest_block().prev_hash
+        block = blockchain.construct_block(presented_proof, previous_hash)
+        response = {
+                'message': 'The new block has been forged',
+                'index': block.index,
+                'transactions': block.data,
+                'proof': block.proof_no,
+                'previous_hash': block.prev_hash
+                }
+        return jsonify(response), 200
+    else:
+        return 'That is not the correct proof, sorry!', 400
 
 
 @app.route('/transaction/new', methods=['POST'])
