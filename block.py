@@ -5,6 +5,7 @@ from uuid import uuid4
 import json
 
 
+# Class for the block entity
 class Block:
 
     def __init__(self, index, proof_no, prev_hash, data, timestamp=None):
@@ -14,6 +15,7 @@ class Block:
         self.data = data
         self.timestamp = time.time()
 
+    # Calculates the hash of the block
     @property
     def calculate_hash(self):
         block_of_string = "{}{}{}{}{}".format(
@@ -25,6 +27,7 @@ class Block:
                 )
         return hashlib.sha256(block_of_string.encode()).hexdigest()
 
+    # returns the data of the block in a set
     def set(self):
         return {
                 'index': self.index,
@@ -35,6 +38,7 @@ class Block:
                 }
 
 
+# Class for the blockchain itself
 class BlockChain:
     def __init__(self):
         self.chain = []
@@ -69,12 +73,20 @@ class BlockChain:
             return False
         return True
 
+    # Adds a pending transaction to the list,
+    # and checks if the request fulfills a transaction
     def add_pending(self, transaction_data):
         completed = False
+
+        # Goes through the current pending transactions
         for pender in self.pending_transactions:
+
+            # Removes expired transaction stubs
             if pender['timestamp'] + 3600 < time.time():
                 self.pending_transactions.remove(pender)
                 continue
+
+            # Check whether there is an outstanding stub
             if ((pender['sender'] == transaction_data['transactor'] and
                pender['transactor'] == transaction_data['recipient'] and
                pender['amount'] == transaction_data['amount']) or
@@ -84,6 +96,7 @@ class BlockChain:
                 completed = True
                 break
 
+        # If there is a new complete transaction adds it
         if completed:
             self.pending_transactions.remove(pender)
             self.new_data(transaction_data['sender'],
@@ -95,6 +108,7 @@ class BlockChain:
             self.pending_transactions += [transaction_data]
             return False
 
+    # Adds the new transaction to the next block
     def new_data(self, sender, recipient, quantity):
         self.current_data.append({
             'sender': sender,
@@ -103,12 +117,14 @@ class BlockChain:
         })
         return len(self.chain) + 1
 
+    # Mines the proof of work for the next block
     def proof_of_work(self, last_proof):
         proof_no = 0
         while BlockChain.verifying_proof(last_proof, proof_no) is False:
             proof_no += 1
         return proof_no
 
+    # Checks whether the proof given is correct
     def proof_of_mine(self, proof_to_check):
         if BlockChain.verifying_proof(self.latest_block().proof_no,
                                       proof_to_check):
@@ -116,18 +132,22 @@ class BlockChain:
         else:
             return False
 
+    # Returns the proof of the latest block
     def latest_proof(self):
         return self.latest_block().proof_no
 
+    # Checks whether the provided proof is correct
     @staticmethod
     def verifying_proof(last_proof, proof):
         guess = f'{last_proof}{proof}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
         return guess_hash[:4] == "0000"
 
+    # Returns the last block in the chain
     def latest_block(self):
         return self.chain[-1]
 
+    # Returns the whole chain as a json object
     def get_chain(self):
         chain_json = []
         for i in self.chain:
@@ -135,12 +155,14 @@ class BlockChain:
         return {'chain': chain_json, 'length': len(blockchain.chain)}
 
 
+# Starts the basics of the flask app
 app = Flask(__name__)
 
 node_identifier = str(uuid4()).replace('-', '')
 blockchain = BlockChain()
 
 
+# Automatically mines the next proof, used for testing purposes
 @app.route('/mine', methods=['GET'])
 def mine():
 
@@ -148,12 +170,14 @@ def mine():
     last_proof = last_block.proof_no
     proof = blockchain.proof_of_work(last_proof)
 
+    # pays the 'miner'
     blockchain.new_data(
         sender="0",
         recipient=node_identifier,
         quantity=1,
     )
 
+    # Creates a new block
     previous_hash = last_block.prev_hash
     block = blockchain.construct_block(proof, previous_hash)
 
@@ -167,19 +191,28 @@ def mine():
     return jsonify(response), 200
 
 
+# Allows a user to mine with their own proof
 @app.route('/mine', methods=['POST'])
 def user_mine():
+
+    # checking validity
     values = request.get_json()
     required = ['miner', 'proof']
     if not all(k in values for k in required):
         return 'Missing values', 400
     presented_proof = values['proof']
+
+    # Check if the proof number is correct
     if blockchain.proof_of_mine(presented_proof):
+
+        # Pays the miner
         blockchain.new_data(
                 sender="0",
                 recipient=values['miner'],
                 quantity=1
                 )
+
+        # Construct new block
         previous_hash = blockchain.latest_block().prev_hash
         block = blockchain.construct_block(presented_proof, previous_hash)
         response = {
@@ -194,13 +227,18 @@ def user_mine():
         return 'That is not the correct proof, sorry!', 400
 
 
+# Endpoint to create a new transaction
 @app.route('/transaction/new', methods=['POST'])
 def new_transaction():
+
+    # Check if the request is formatted correctly
     values = json.loads(request.data, strict=False)
     required = ['sender', 'recipient', 'amount', 'transactor']
     if not all(k in values for k in required):
         return 'Missing values', 400
     transaction_data = values
+
+    # Check if the transaction is pending, or if this request completes it.
     if blockchain.add_pending(transaction_data):
         index = blockchain.latest_block().index + 1
         response = {
@@ -215,6 +253,7 @@ def new_transaction():
         return jsonify(response), 200
 
 
+# Endpoint to retrieve the current blockchain in its entirety
 @app.route('/chain', methods=["GET"])
 def full_chain():
     response = blockchain.get_chain()
