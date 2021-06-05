@@ -1,8 +1,10 @@
 import hashlib
+import os
 import time
 from flask import Flask, jsonify, request
 from uuid import uuid4
 import json
+import sqlite3 as sql
 
 
 # Class for the block entity
@@ -31,7 +33,7 @@ class Block:
     def set(self):
         return {
                 'index': self.index,
-                'proof_no': self.proof_no,
+                'proof_no': selfsqlite check if database exists.proof_no,
                 'prev_hash': self.prev_hash,
                 'data': self.data,
                 'timestamp': self.timestamp
@@ -153,6 +155,31 @@ class BlockChain:
         for i in self.chain:
             chain_json += [i.set()]
         return {'chain': chain_json, 'length': len(blockchain.chain)}
+
+
+class DatabaseConnector():
+
+    def __init__(self, filename, conn):
+        self.filename = filename
+        if self.checkExistence():
+            self.conn = sql.connect(self.filename)
+            self.cursor = self.conn.cursor()
+        else:
+            self.createDatabases()
+
+    def checkExistence(self):
+        if os.path.isfile(self.filename):
+            return True
+        else:
+            return False
+
+    def createDatabases(self):
+        self.conn = sql.connect(self.filename)
+        self.cursor = self.conn.cursror()
+        self.cursor.execute("")
+
+    def closeConnection(self):
+        self.conn.close()
 
 
 # Starts the basics of the flask app
