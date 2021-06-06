@@ -9,10 +9,7 @@ class DatabaseConnector():
 
     def __init__(self, filename):
         self.filename = filename
-        if self.checkExistence():
-            conn = sql.connect(self.filename)
-            self.cursor = conn.cursor()
-        else:
+        if not self.checkExistence():
             self.createDatabases()
 
     def checkExistence(self):
@@ -22,40 +19,47 @@ class DatabaseConnector():
             return False
 
     def createDatabases(self):
-        self.conn = sql.connect(self.filename)
-        self.cursor = self.conn.cursor()
+        conn = sql.connect(self.filename)
+        cursor = conn.cursor()
         try:
-            self.cursor.execute(create_user_table_query)
-            self.cursor.execute(create_block_table_query)
-            self.cursor.execute(create_data_table_query)
+            cursor.execute(create_user_table_query)
+            cursor.execute(create_block_table_query)
+            cursor.execute(create_data_table_query)
         except Error as e:
             print(e)
+        conn.commit()
+        conn.close()
 
     def addBlock(self, block):
-        self.cursor.execute(add_block_entry_query,
-                            (block.index,
-                             block.proof_no,
-                             block.prev_hash,
-                             block.timestamp))
+        conn = sql.connect(self.filename)
+        cursor = conn.cursor()
+        cursor.execute(add_block_entry_query,
+                       (block.index,
+                        block.proof_no,
+                        block.prev_hash,
+                        block.timestamp))
         for dat in block.data:
-            self.cursor.execute(add_data_entry_query,
-                                (block.index,
-                                 dat['sender'],
-                                 dat['recipient'],
-                                 dat['amount']))
-        self.conn.commit()
+            cursor = conn.cursor()
+            cursor.execute(add_data_entry_query,
+                           (block.index,
+                            dat['sender'],
+                            dat['recipient'],
+                            dat['quantity']))
+        conn.commit()
+        conn.close()
 
     def addUser(self, user, passw):
+        conn = sql.connect(self.filename)
+        cursor = conn.cursor()
         ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
         chars = []
         for i in range(16):
             chars.append(random.choice(ALPHABET))
-        salt = "".joint(chars)
-        self.cursor.execute(add_user_entry_query,
-                            (user, salt, passw))
-
-    def closeConnection(self):
-        self.conn.close()
+        salt = "".join(chars)
+        cursor.execute(add_user_entry_query,
+                       (user, salt, passw))
+        conn.commit()
+        conn.close()
 
 
 create_user_table_query = """CREATE TABLE IF NOT EXISTS users (
@@ -97,3 +101,5 @@ if __name__ == "__main__":
     blockc = BlockChain()
     d = DatabaseConnector("testDb.sqlite")
     d.addBlock(blockc.latest_block())
+    d.addUser("christian", "password")
+    os.remove("testDb.sqlite")

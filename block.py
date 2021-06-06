@@ -2,10 +2,12 @@ from flask import Flask, jsonify, request
 from uuid import uuid4
 import json
 from blockchain import BlockChain
+from database import DatabaseConnector
 
 
 # Starts the basics of the flask app
 app = Flask(__name__)
+dbC = DatabaseConnector("testChain.sqlite")
 
 node_identifier = str(uuid4()).replace('-', '')
 blockchain = BlockChain()
@@ -27,7 +29,7 @@ def mine():
     )
 
     # Creates a new block
-    previous_hash = last_block.prev_hash
+    previous_hash = last_block.calculate_hash
     block = blockchain.construct_block(proof, previous_hash)
 
     response = {
@@ -37,6 +39,7 @@ def mine():
         'proof': block.proof_no,
         'previous_hash': block.prev_hash
     }
+    dbC.addBlock(blockchain.latest_block())
     return jsonify(response), 200
 
 
@@ -62,7 +65,7 @@ def user_mine():
                 )
 
         # Construct new block
-        previous_hash = blockchain.latest_block().prev_hash
+        previous_hash = blockchain.latest_block().calculate_hash
         block = blockchain.construct_block(presented_proof, previous_hash)
         response = {
                 'message': 'The new block has been forged',
@@ -71,6 +74,7 @@ def user_mine():
                 'proof': block.proof_no,
                 'previous_hash': block.prev_hash
                 }
+        dbC.addBlock(blockchain.latest_block())
         return jsonify(response), 200
     else:
         return 'That is not the correct proof, sorry!', 400
@@ -107,6 +111,11 @@ def new_transaction():
 def full_chain():
     response = blockchain.get_chain()
     return jsonify(response), 200
+
+
+@app.route('/user/new', methods=["POST"])
+def new_user():
+    return
 
 
 if __name__ == '__main__':
