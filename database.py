@@ -61,6 +61,32 @@ class DatabaseConnector():
         conn.commit()
         conn.close()
 
+    def loadUsers(self):
+        conn = sql.connect(self.filename)
+        cursor = conn.cursor()
+        cursor.execute(select_all_users)
+        users = cursor.fetchall()
+        cursor.close()
+        conn.commit()
+        return users
+
+    def loadData(self):
+        conn = sql.connect(self.filename)
+        cursor = conn.cursor()
+        cursor.execute(select_all_data)
+        data = cursor.fetchall()
+        cursor.close()
+        conn.commit()
+        return data
+
+    def loadBlocks(self):
+        conn = sql.connect(self.filename)
+        cursor = conn.cursor()
+        cursor.execute(select_all_blocks)
+        blocks = cursor.fetchall()
+        conn.commit()
+        return blocks
+
 
 create_user_table_query = """CREATE TABLE IF NOT EXISTS users (
                             id integer PRIMARY KEY,
@@ -96,6 +122,13 @@ add_data_entry_query = """INSERT INTO data(block_id, sender, recipient, amount)
 
 add_block_entry_query = """INSERT INTO blocks(id, proof_no, prev_hash, timestamp)
                             VALUES(?, ?, ?, ?)"""
+
+select_all_users = """SELECT user, pass, amount FROM Users"""
+
+select_all_blocks = """SELECT * FROM blocks"""
+
+select_all_data = """SELECT * FROM data"""
+
 
 if __name__ == "__main__":
     blockc = BlockChain()

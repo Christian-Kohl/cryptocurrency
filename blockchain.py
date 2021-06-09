@@ -37,11 +37,23 @@ class Block:
 
 # Class for the blockchain itself
 class BlockChain:
-    def __init__(self):
-        self.chain = []
-        self.pending_transactions = []
-        self.current_data = []
-        self.construct_genesis()
+    def __init__(self, blocks=None, data=None):
+        if blocks is None:
+            self.chain = []
+            self.pending_transactions = []
+            self.current_data = []
+            self.construct_genesis()
+        else:
+            self.chain = []
+            for block in blocks:
+                rdat = [x for x in data if x[1] == block[0]]
+                self.chain += [Block(block[0],
+                                     block[1],
+                                     block[2],
+                                     rdat,
+                                     block[3])]
+            self.pending_transactions = []
+            self.current_data = []
 
     def construct_genesis(self):
         self.construct_block(proof_no=0, prev_hash=0)

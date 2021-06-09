@@ -6,11 +6,17 @@ from database import DatabaseConnector
 
 
 # Starts the basics of the flask app
-app = Flask(__name__)
 dbC = DatabaseConnector("testChain.sqlite")
 
 node_identifier = str(uuid4()).replace('-', '')
-blockchain = BlockChain()
+users = dbC.loadUsers()
+
+blocks = dbC.loadBlocks()
+
+datas = dbC.loadData()
+
+blockchain = BlockChain(blocks, datas)
+app = Flask(__name__)
 
 
 # Automatically mines the next proof, used for testing purposes
@@ -115,7 +121,12 @@ def full_chain():
 
 @app.route('/user/new', methods=["POST"])
 def new_user():
-    return
+    values = json.loads(request.data, strict=False)
+    required = ["user", "pass"]
+    if not all(k in values for k in required):
+        return "Missing values", 400
+    dbC.addUser(values['user'], values['pass'])
+    return "user created", 200
 
 
 if __name__ == '__main__':
