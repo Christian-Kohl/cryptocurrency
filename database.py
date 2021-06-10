@@ -1,5 +1,5 @@
 import sqlite3 as sql
-from blockchain import BlockChain
+import blockchain
 from sqlite3 import Error
 import os
 import random
@@ -89,8 +89,7 @@ class DatabaseConnector():
 
 
 create_user_table_query = """CREATE TABLE IF NOT EXISTS users (
-                            id integer PRIMARY KEY,
-                            user VARCHAR(30) NOT NULL,
+                            user VARCHAR(30) PRIMARY KEY,
                             salt VARCHAR(10) NOT NULL,
                             pass TEXT NOT Null,
                             amount INTEGER NOT NULL
@@ -125,13 +124,13 @@ add_block_entry_query = """INSERT INTO blocks(id, proof_no, prev_hash, timestamp
 
 select_all_users = """SELECT user, pass, amount FROM Users"""
 
-select_all_blocks = """SELECT * FROM blocks"""
+select_all_blocks = """SELECT * FROM blocks ORDER BY id"""
 
 select_all_data = """SELECT * FROM data"""
 
 
 if __name__ == "__main__":
-    blockc = BlockChain()
+    blockc = blockchain.BlockChain()
     d = DatabaseConnector("testDb.sqlite")
     d.addBlock(blockc.latest_block())
     d.addUser("christian", "password")

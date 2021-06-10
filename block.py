@@ -11,8 +11,8 @@ dbC = DatabaseConnector("testChain.sqlite")
 node_identifier = str(uuid4()).replace('-', '')
 users = dbC.loadUsers()
 
-blocks = dbC.loadBlocks()
 
+blocks = dbC.loadBlocks()
 datas = dbC.loadData()
 
 blockchain = BlockChain(blocks, datas)

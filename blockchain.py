@@ -1,4 +1,5 @@
 import hashlib
+import database
 import time
 
 
@@ -37,12 +38,14 @@ class Block:
 
 # Class for the blockchain itself
 class BlockChain:
-    def __init__(self, blocks=None, data=None):
-        if blocks is None:
+    def __init__(self, blocks=[], data=[]):
+        if not blocks:
             self.chain = []
             self.pending_transactions = []
             self.current_data = []
             self.construct_genesis()
+            dbC = database.DatabaseConnector('testChain.sqlite')
+            dbC.addBlock(self.latest_block())
         else:
             self.chain = []
             for block in blocks:
