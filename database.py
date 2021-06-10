@@ -25,6 +25,7 @@ class DatabaseConnector():
             cursor.execute(create_user_table_query)
             cursor.execute(create_block_table_query)
             cursor.execute(create_data_table_query)
+            self.addUser("Christian", "password")
         except Error as e:
             print(e)
         conn.commit()
@@ -58,6 +59,14 @@ class DatabaseConnector():
         salt = "".join(chars)
         cursor.execute(add_user_entry_query,
                        (user, salt, passw))
+        conn.commit()
+        conn.close()
+
+    def updateUser(self, u, a):
+        update_user = f"UPDATE users SET amount= {a} WHERE user = '{u}';"
+        conn = sql.connect(self.filename)
+        cursor = conn.cursor()
+        cursor.execute(update_user)
         conn.commit()
         conn.close()
 
@@ -127,7 +136,6 @@ select_all_users = """SELECT user, pass, amount FROM Users"""
 select_all_blocks = """SELECT * FROM blocks ORDER BY id"""
 
 select_all_data = """SELECT * FROM data"""
-
 
 if __name__ == "__main__":
     blockc = blockchain.BlockChain()
